@@ -2,26 +2,27 @@
 launcher.py - Main Launcher Functions and Command Dispatcher
 
 This module implements the core business logic of the Voice Command Launcher:
-- show_menu(): Displays the menu of available commands
-- process_command(): Parses and routes normalized commands
-- open_website(): Launches predefined websites via the webbrowser module
-- open_application(): Safely starts Windows system applications via subprocess
-- open_folder(): Safely opens predefined Windows user folders via subprocess
-- search_web(): Performs web search with query parameter encoding
-- calculate_expression(): Safely evaluates basic arithmetic expressions without eval()
+- show_menu(): Displays the 20 available numbered menu options
+- process_command(): Normalizes user input and routes to the correct function
+- open_website(): Safely opens predefined websites in the web browser
+- open_application(): Safely starts Windows applications (Calculator, Notepad)
+- open_folder(): Safely opens common Windows folders (Downloads, Documents, Desktop)
+- search_web(): Performs Google searches with encoded query parameters
+- calculate_expression(): Safely solves arithmetic problems (+, -, *, /) without eval()
 - show_time(): Displays formatted current system date and time
 - show_date(): Displays formatted current system date
-- show_history(): Displays session command history with numbering
-- show_stats(): Displays total, successful, and unknown command statistics
-- show_about(): Displays project metadata and summary
+- show_history(): Displays a numbered list of commands run this session
+- show_stats(): Displays total, successful, and unknown command counts
+- show_about(): Displays project information and course context
 - clear_screen(): Clears the terminal screen
-- show_help(): Prints comprehensive command guide organized by category
+- show_help(): Displays a categorized command guide with helpful tips
 
-Demonstrates:
-- if / elif / else conditionals
-- for loop iterations
+Python Essentials concepts demonstrated:
+- if / elif / else conditionals for command routing
+- for loops and while loops for menus and repetition
 - Functions with parameters and return values
-- Exception handling (try / except)
+- Dictionary operations for lookups and session state
+- Exception handling (try / except) for safe system calls and calculations
 - Standard library modules: os, subprocess, webbrowser, datetime
 """
 
@@ -49,7 +50,11 @@ from utils import (
     print_separator,
 )
 
-# SESSION STATE: Tracks history and execution statistics during the current runtime
+# SESSION STATE: Tracks history and execution statistics during the current runtime.
+# - 'history': list of command strings entered by the user
+# - 'total': count of all non-empty commands entered
+# - 'successful': count of commands that completed their task successfully
+# - 'unknown': count of unrecognized commands or failed operations
 SESSION_DATA = {
     "history": [],
     "total": 0,
@@ -58,184 +63,228 @@ SESSION_DATA = {
 }
 
 
-def reset_session_data() -> None:
+def reset_session_data():
     """
-    Resets the session history and counters. Useful for testing and cleanup.
+    Resets the session history and counters back to zero.
+    Useful for testing and for clearing session state.
     """
+    # Empty the list of commands
     SESSION_DATA["history"].clear()
+
+    # Reset all integer counters to zero
     SESSION_DATA["total"] = 0
     SESSION_DATA["successful"] = 0
     SESSION_DATA["unknown"] = 0
 
 
-def show_menu() -> None:
+def show_menu():
     """
-    Displays the application banner and the numbered list of available commands.
+    Displays the application banner and the 20 numbered menu options.
     Demonstrates:
-    - for loop
-    - range() and len()
-    - Arithmetic operator (+ 1)
-    - List indexing
+    - for loop over a list using range() and len()
+    - Adding 1 to a zero-based index to create 1-based menu numbers
     """
+    # Print the top ASCII banner
     print_banner()
     print("Available commands:\n")
-    
-    # Loop over the list of available commands using numeric indices
+
+    # Loop through the list of 20 available commands using range and index
     for index in range(len(AVAILABLE_COMMANDS)):
         menu_number = index + 1
         command_label = AVAILABLE_COMMANDS[index]
         print(f"{menu_number}. {command_label}")
-    
-    print("\nType \"help\" to see available commands.")
+
+    print('\nType "help" to see available commands.')
 
 
-def open_website(target: str) -> bool:
+def open_website(target):
     """
     Safely opens a website in the default system web browser.
-    The target can be a registered keyword key (e.g., 'open youtube') or a valid URL.
-    
-    Returns True if launch was initiated successfully, False otherwise.
+    The target can be a registered command (e.g. 'open youtube') or a full web URL.
+
+    Returns:
+        bool: True if the browser opened successfully, False otherwise.
     """
     target_url = None
     display_title = "Website"
 
-    # Check if target is a registered website keyword in the dictionary
+    # Check if the target is a registered website key in our dictionary
     if target in WEBSITE_URLS:
         target_url = WEBSITE_URLS[target]
+        # Create a clean display title (e.g., "open youtube" -> "Youtube")
         clean_name = target.replace("open ", "").strip()
         if clean_name.lower() == "github":
             display_title = "GitHub"
         else:
             display_title = clean_name.title()
+
+    # Check if the user entered a direct http or https web address
     elif target.startswith("http://") or target.startswith("https://"):
         target_url = target
         display_title = "Web Page"
+
+    # If the target is not recognized, print an error message and return False
     else:
         print(f"\nUnrecognized website: '{target}'")
         return False
 
-    # Only print standard opening message if not already displaying search
+    # Do not print "Opening..." if this is an automated Google search URL
     if not target_url.startswith("https://www.google.com/search"):
         print(f"\nOpening {display_title}...")
 
-    # Safe launch with exception handling
+    # Open the browser inside a try/except block to handle any browser launch errors
     try:
         success = webbrowser.open(target_url)
+        # If webbrowser.open returned False, report failure
         if success is False:
             return False
         return True
+
     except webbrowser.Error as web_err:
         print(f"Browser launch error: {web_err}")
         return False
+
     except Exception as general_err:
         print(f"Unexpected error while opening browser: {general_err}")
         return False
 
 
-def open_application(app_key: str) -> bool:
+def open_application(app_key):
     """
-    Safely launches a Windows desktop application from a predefined dictionary.
-    Does NOT allow execution of arbitrary user commands.
+    Safely launches a Windows desktop application from the predefined dictionary.
+    Does NOT allow execution of arbitrary commands.
 
-    Returns True if launch was successful, False otherwise.
+    Returns:
+        bool: True if the application started successfully, False otherwise.
     """
+    # Security check: only allow applications listed in APPLICATION_COMMANDS
     if app_key not in APPLICATION_COMMANDS:
         print(f"\nUnsupported application command: '{app_key}'")
         print("Supported applications: Calculator, Notepad.")
         return False
 
-    # Extract display name and executable from the configured tuple
+    # Unpack the display name and executable filename from the configured tuple
     app_info = APPLICATION_COMMANDS[app_key]
     display_name = app_info[0]
     executable_name = app_info[1]
 
     print(f"\nOpening {display_name}...")
 
-    # Launch application using a controlled list argument (never arbitrary shell strings)
+    # Launch the process by passing the executable as a single-element list.
+    # Passing a list prevents shell command injection.
     try:
         subprocess.Popen([executable_name])
         return True
+
     except FileNotFoundError:
+        # Occurs if the executable file does not exist on this computer
         print(f"Error: Could not find application '{executable_name}' on this system.")
         return False
+
     except OSError as os_err:
+        # Handles operating system permission or execution errors
         print(f"Operating system error while launching '{display_name}': {os_err}")
         return False
+
     except Exception as general_err:
+        # Catch-all for any other unexpected runtime exceptions
         print(f"Unexpected error launching application: {general_err}")
         return False
 
 
-def open_folder(folder_key: str) -> bool:
+def open_folder(folder_key):
     """
-    Safely opens a predefined Windows folder in File Explorer.
+    Safely opens a predefined Windows user folder in File Explorer.
     Only allows predefined folder shortcuts: Downloads, Documents, Desktop.
-    Does NOT allow opening arbitrary user paths.
+
+    Returns:
+        bool: True if the folder was opened successfully, False otherwise.
     """
+    # Security check: verify the folder key is in our approved folder whitelist
     if folder_key not in FOLDER_COMMANDS:
         print(f"\nUnsupported folder command: '{folder_key}'")
         print("Supported folders: Downloads, Documents, Desktop.")
         return False
 
+    # Unpack the folder display name and absolute folder path from the tuple
     display_name, folder_path = FOLDER_COMMANDS[folder_key]
     print(f"\nOpening {display_name} folder...")
 
     try:
+        # If the target directory does not exist yet, create it safely
         if not os.path.exists(folder_path):
             os.makedirs(folder_path, exist_ok=True)
+
+        # Launch Windows File Explorer pointing to the specific directory
         subprocess.Popen(["explorer.exe", folder_path])
         return True
+
     except FileNotFoundError:
         print("Error: Windows Explorer utility not found on this system.")
         return False
+
     except OSError as os_err:
         print(f"Operating system error while opening {display_name}: {os_err}")
         return False
+
     except Exception as general_err:
         print(f"Unexpected error opening folder: {general_err}")
         return False
 
 
-def search_web(query: str) -> bool:
+def search_web(query):
     """
-    Performs a web search by building a Google query URL and opening it in the browser.
+    Searches Google for the given topic and opens the results in the web browser.
 
-    Returns True if search URL opened successfully, False otherwise.
+    Returns:
+        bool: True if the search URL opened successfully, False otherwise.
     """
+    # Remove extra spaces around the query
     clean_query = query.strip()
-    
-    # Check if query is empty
+
+    # Reject empty queries so we don't open a blank search page
     if len(clean_query) == 0:
         print("\nSearch query cannot be empty.")
         print("Usage: search <topic>  (e.g., search python programming)")
         return False
 
     print(f"\nSearching for: {clean_query}...")
+
+    # Build the full Google search URL using urllib encoding
     search_url = build_search_url(clean_query)
+
+    # Open the generated URL using our safe website opener function
     return open_website(search_url)
 
 
-def calculate_expression(expression: str) -> bool:
+def calculate_expression(expression):
     """
-    Safely parses and calculates a basic arithmetic expression between two numbers.
-    Supports operators: +, -, *, /
-    Validates input before calculating.
-    Does NOT use eval() or execute arbitrary code.
-    
-    Returns True if calculation was successful, False otherwise.
+    Safely evaluates a basic math expression containing two numbers and one operator.
+    Supported operators: +, -, *, /
+    Does NOT use eval() or exec() to ensure strict code safety.
+
+    Returns:
+        bool: True if the calculation succeeded, False if input was invalid.
     """
     clean_expr = expression.strip()
+
+    # Check for empty expression
     if not clean_expr:
         print("\nMissing expression to calculate.")
         print("Usage: calculate <num1> <operator> <num2>  (Example: calculate 25 + 50)")
         return False
 
-    # Search for an arithmetic operator (+, -, *, /)
-    # If the expression starts with '-', allow negative first number
-    search_start = 1 if clean_expr.startswith("-") else 0
+    # If the expression starts with a minus sign (like -5 + 10),
+    # start searching for the operator after the first character so the negative sign isn't mistaken for subtraction.
+    if clean_expr.startswith("-"):
+        search_start = 1
+    else:
+        search_start = 0
+
     found_op = None
     op_pos = -1
 
+    # Search for the first valid arithmetic operator (+, -, *, /)
     for op in ("+", "-", "*", "/"):
         idx = clean_expr.find(op, search_start)
         if idx != -1:
@@ -243,19 +292,23 @@ def calculate_expression(expression: str) -> bool:
             op_pos = idx
             break
 
+    # If no recognized operator was found in the text, show an error message
     if found_op is None:
         print(f"\nNo valid operator (+, -, *, /) found in '{clean_expr}'.")
         print("Usage: calculate <num1> <operator> <num2>  (Example: calculate 25 + 50)")
         return False
 
+    # Split the expression into the left number string and right number string
     left_str = clean_expr[:op_pos].strip()
     right_str = clean_expr[op_pos + 1:].strip()
 
+    # Ensure both sides of the operator have content (e.g. reject "50 +")
     if not left_str or not right_str:
         print(f"\nIncomplete expression '{clean_expr}'.")
         print("Usage: calculate <num1> <operator> <num2>  (Example: calculate 25 + 50)")
         return False
 
+    # Convert both number strings into float numbers inside a try/except block
     try:
         num1 = float(left_str)
         num2 = float(right_str)
@@ -263,6 +316,7 @@ def calculate_expression(expression: str) -> bool:
         print(f"\nInvalid numeric values in '{clean_expr}'. Please enter numbers only.")
         return False
 
+    # Perform the arithmetic operation based on the detected operator
     if found_op == "+":
         result = num1 + num2
     elif found_op == "-":
@@ -270,6 +324,7 @@ def calculate_expression(expression: str) -> bool:
     elif found_op == "*":
         result = num1 * num2
     elif found_op == "/":
+        # Check for division by zero before dividing to avoid ZeroDivisionError crash
         if num2 == 0:
             print("\nError: Division by zero is not allowed.")
             return False
@@ -278,8 +333,13 @@ def calculate_expression(expression: str) -> bool:
         print(f"\nUnsupported operator '{found_op}'.")
         return False
 
-    # Format result: integer if whole number, otherwise rounded float
-    display_result = int(result) if result.is_integer() else round(result, 4)
+    # Format the result: show whole numbers as integers (e.g. 75 instead of 75.0)
+    if result.is_integer():
+        display_result = int(result)
+    else:
+        display_result = round(result, 4)
+
+    # Print the calculation result inside a formatted box
     print_separator("-", 40)
     print("CALCULATION RESULT:")
     print(f"  {clean_expr} = {display_result}")
@@ -287,9 +347,9 @@ def calculate_expression(expression: str) -> bool:
     return True
 
 
-def show_time() -> None:
+def show_time():
     """
-    Displays the current system date and time in a formatted box.
+    Displays the current system date and time inside a formatted box.
     """
     current_time_str = format_current_time()
     print_separator("-", 40)
@@ -298,9 +358,9 @@ def show_time() -> None:
     print_separator("-", 40)
 
 
-def show_date() -> None:
+def show_date():
     """
-    Displays the current system date in a formatted box.
+    Displays the current system date inside a formatted box.
     """
     current_date_str = format_current_date()
     print_separator("-", 40)
@@ -309,23 +369,28 @@ def show_date() -> None:
     print_separator("-", 40)
 
 
-def show_history() -> None:
+def show_history():
     """
-    Displays the list of commands entered in the current session with numbering.
+    Displays a numbered list of all commands entered in the current session.
+    Demonstrates using enumerate() with start=1.
     """
     print_separator("-", 40)
     print("COMMAND HISTORY (Current Session):")
+
+    # If no commands have been recorded yet, show a helpful message
     if not SESSION_DATA["history"]:
         print("  No commands recorded yet.")
     else:
+        # Loop through command history list and print with numbering
         for idx, cmd in enumerate(SESSION_DATA["history"], start=1):
             print(f"  {idx}. {cmd}")
+
     print_separator("-", 40)
 
 
-def show_stats() -> None:
+def show_stats():
     """
-    Displays execution counts for the current session.
+    Displays the total, successful, and unknown command counts for the session.
     """
     print_separator("-", 40)
     print("SESSION STATISTICS:")
@@ -335,9 +400,9 @@ def show_stats() -> None:
     print_separator("-", 40)
 
 
-def show_about() -> None:
+def show_about():
     """
-    Displays project metadata and description.
+    Displays project description, course details, and technology stack.
     """
     print_separator("=", 40)
     print("          ABOUT THIS PROJECT")
@@ -349,17 +414,17 @@ def show_about() -> None:
     print_separator("=", 40)
 
 
-def clear_screen() -> None:
+def clear_screen():
     """
-    Clears the console screen using cross-platform terminal clear utility.
+    Clears the console screen using our cross-platform utility function.
     """
     clear_terminal()
 
 
-def show_help() -> None:
+def show_help():
     """
-    Prints a detailed command guide organized by category.
-    Demonstrates for loop over tuple elements.
+    Prints a categorized guide of all available commands and helpful tips.
+    Demonstrates looping over a tuple of tip strings.
     """
     print_separator("=", 40)
     print("          COMMAND GUIDE & HELP")
@@ -390,97 +455,108 @@ def show_help() -> None:
     print("- help")
     print("- exit\n")
     print("HELPFUL TIPS:")
+
+    # Loop through the immutable HELP_TIPS tuple and print each tip
     for tip in HELP_TIPS:
         print(f" * {tip}")
+
     print_separator("=", 40)
 
 
-def process_command(command: str) -> bool:
+def process_command(command):
     """
-    Normalizes and processes a user command.
-    Routes the command to the appropriate functional handler using if/elif/else.
+    Takes user input, cleans and normalizes it, updates session counters,
+    and routes the command to the appropriate function using if/elif/else.
 
     Returns:
-        bool: True if the launcher should continue running,
-              False if an exit command was received.
+        bool: True if the launcher should keep running,
+              False if the user entered an exit command.
     """
+    # Normalize input: trim extra spaces, convert to lowercase
     normalized = normalize_command(command)
 
-    # Empty command check
+    # If the user entered nothing, prompt them and keep the loop running
     if len(normalized) == 0:
         print("\nNo command entered. Type 'help' to see available commands.")
         return True
 
-    # Record all non-empty commands into session history and total count
+    # Record every non-empty input into the session history list and increment total count
     SESSION_DATA["history"].append(command.strip())
     SESSION_DATA["total"] += 1
 
-    # Check for command aliases (e.g. yt -> open youtube, gh -> open github, google -> open google)
+    # Check for short aliases (e.g., 'yt' -> 'open youtube', 'gh' -> 'open github')
     if normalized in COMMAND_ALIASES:
         normalized = COMMAND_ALIASES[normalized]
 
-    # Check if the user entered a menu number ('1' through '21')
+    # Check if the user entered a menu number ('1' through '20')
     if normalized in MENU_NUMBER_MAP:
         normalized = MENU_NUMBER_MAP[normalized]
 
-    # MODULE: Exit Handling
+    # 1. Exit Commands (exit, quit, bye, or menu number 20)
     if normalized in EXIT_COMMANDS:
         SESSION_DATA["successful"] += 1
         print("\nThank you for using Voice Command Launcher. Goodbye!\n")
         return False
 
-    # MODULE: Help
+    # 2. Help Command
     elif normalized in ("help", "show help", "menu", "show menu"):
         SESSION_DATA["successful"] += 1
         show_help()
         return True
 
-    # MODULE: Command History
+    # 3. Command History
     elif normalized in ("history", "show history", "command history"):
         SESSION_DATA["successful"] += 1
         show_history()
         return True
 
-    # MODULE: Session Statistics
+    # 4. Session Statistics
     elif normalized in ("stats", "statistics", "show stats"):
         SESSION_DATA["successful"] += 1
         show_stats()
         return True
 
-    # MODULE: Clear Screen
+    # 5. Clear Screen
     elif normalized == "clear":
         SESSION_DATA["successful"] += 1
         clear_screen()
         return True
 
-    # MODULE: About Project
+    # 6. About Project
     elif normalized in ("about", "show about", "info"):
         SESSION_DATA["successful"] += 1
         show_about()
         return True
 
-    # MODULE: Time
+    # 7. System Time
     elif normalized in ("show time", "time", "current time", "what time is it"):
         SESSION_DATA["successful"] += 1
         show_time()
         return True
 
-    # MODULE: Date
+    # 8. System Date
     elif normalized in ("show date", "date", "current date", "today"):
         SESSION_DATA["successful"] += 1
         show_date()
         return True
 
-    # MODULE: Calculator
+    # 9. Calculator Commands
     elif normalized.startswith("calculate ") or normalized == "calculate":
         if normalized == "calculate":
+            # User typed just "calculate" without an expression
             print("\nPlease provide an expression to calculate.")
             print("Usage: calculate <num1> <operator> <num2>  (Example: calculate 25 + 50)")
             SESSION_DATA["unknown"] += 1
         else:
+            # Extract the expression part following the word "calculate"
             clean_input = command.strip()
             parts = clean_input.split(maxsplit=1)
-            expr_part = parts[1].strip() if len(parts) > 1 else ""
+            if len(parts) > 1:
+                expr_part = parts[1].strip()
+            else:
+                expr_part = ""
+
+            # Evaluate the math expression safely without eval()
             success = calculate_expression(expr_part)
             if success:
                 SESSION_DATA["successful"] += 1
@@ -488,18 +564,20 @@ def process_command(command: str) -> bool:
                 SESSION_DATA["unknown"] += 1
         return True
 
-    # MODULE: Web Search
+    # 10. Web Search Commands
     elif normalized.startswith("search ") or normalized == "search" or normalized == "search the web":
         if normalized in ("search", "search the web"):
+            # User typed just "search" without a search topic
             print("\nPlease provide a search topic.")
             print("Usage: search <topic>  (Example: search python programming)")
             SESSION_DATA["unknown"] += 1
         else:
-            # Preserve original casing of query while recognizing 'search' keyword
+            # Extract the search query while preserving original casing
             clean_input = command.strip()
             parts = clean_input.split(maxsplit=1)
             if len(parts) > 1:
                 query_part = parts[1].strip()
+                # Run the search; increment successful only if browser launch succeeds
                 if search_web(query_part):
                     SESSION_DATA["successful"] += 1
                 else:
@@ -510,7 +588,7 @@ def process_command(command: str) -> bool:
                 SESSION_DATA["unknown"] += 1
         return True
 
-    # MODULE: Website Launcher
+    # 11. Predefined Website Shortcuts
     elif normalized in WEBSITE_URLS:
         if open_website(normalized):
             SESSION_DATA["successful"] += 1
@@ -518,7 +596,7 @@ def process_command(command: str) -> bool:
             SESSION_DATA["unknown"] += 1
         return True
 
-    # MODULE: Application Launcher
+    # 12. Predefined Windows Applications (Calculator, Notepad)
     elif normalized in APPLICATION_COMMANDS:
         if open_application(normalized):
             SESSION_DATA["successful"] += 1
@@ -526,7 +604,7 @@ def process_command(command: str) -> bool:
             SESSION_DATA["unknown"] += 1
         return True
 
-    # MODULE: Folder Shortcuts
+    # 13. Predefined Windows Folders (Downloads, Documents, Desktop)
     elif normalized in FOLDER_COMMANDS:
         if open_folder(normalized):
             SESSION_DATA["successful"] += 1
@@ -534,7 +612,7 @@ def process_command(command: str) -> bool:
             SESSION_DATA["unknown"] += 1
         return True
 
-    # Check for incomplete "open" command
+    # 14. Incomplete "open" command
     elif normalized == "open":
         SESSION_DATA["unknown"] += 1
         print("\nPlease specify what you want to open.")
@@ -542,7 +620,7 @@ def process_command(command: str) -> bool:
         print("Type 'help' to see all available commands.")
         return True
 
-    # Check for general "open <target>" pattern
+    # 15. General unrecognized "open <target>" command
     elif normalized.startswith("open "):
         SESSION_DATA["unknown"] += 1
         target = normalized.replace("open ", "", 1).strip()
@@ -551,7 +629,7 @@ def process_command(command: str) -> bool:
         print("Type 'help' to see all available commands.")
         return True
 
-    # Unknown command handling
+    # 16. Completely unrecognized command
     else:
         SESSION_DATA["unknown"] += 1
         print(f"\nCommand not recognized: '{command.strip()}'")

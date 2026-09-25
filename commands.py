@@ -1,18 +1,18 @@
 """
 commands.py - Command Definitions and Data Structures
 
-This module contains predefined data structures for the Voice Command Launcher.
-It demonstrates core Python data types:
-- Lists: for ordered menu items
-- Tuples: for immutable application configurations and tips
-- Sets: for fast membership testing of keywords and exit commands
-- Dictionaries: for mapping user commands to URLs, applications, and actions
+This module stores all predefined data structures used by the Voice Command Launcher.
+It demonstrates fundamental Python data collections:
+- Lists: for the ordered 20-item startup menu
+- Dictionaries: for fast key-value lookups (commands to URLs, apps, folders, and numbers)
+- Tuples: for immutable pairs of application names, folder paths, and help tips
+- Sets: for fast membership testing of exit keywords and action verbs
 """
 
 import os
 
-# LIST: Ordered list of available menu commands displayed to the user
-# Preserves 1 to 9 indices for backward compatibility with existing tests
+# LIST: Ordered list of 20 menu commands displayed to the user.
+# The index in this list corresponds to menu numbers 1 through 20.
 AVAILABLE_COMMANDS = [
     "Open YouTube",
     "Open Google",
@@ -36,7 +36,8 @@ AVAILABLE_COMMANDS = [
     "Exit"
 ]
 
-# DICTIONARY: Maps voice commands / keywords to official website URLs
+# DICTIONARY: Maps voice-style commands and website names to official URLs.
+# When the user enters "open youtube" or "youtube", this dictionary provides the target URL.
 WEBSITE_URLS = {
     "open youtube": "https://www.youtube.com",
     "youtube": "https://www.youtube.com",
@@ -50,15 +51,16 @@ WEBSITE_URLS = {
     "wikipedia": "https://www.wikipedia.org",
 }
 
-# DICTIONARY: Quick aliases mapping to standard voice commands
+# DICTIONARY: Short command aliases that translate quick abbreviations into full commands.
+# Example: typing "yt" is translated into "open youtube".
 COMMAND_ALIASES = {
     "yt": "open youtube",
     "google": "open google",
     "gh": "open github",
 }
 
-# DICTIONARY & TUPLES: Maps voice commands to fixed (Application Name, Executable) tuples
-# Designed specifically for Windows operating systems
+# DICTIONARY & TUPLES: Maps voice commands to fixed (Application Name, Executable) tuples.
+# Tuples are used because the pairing between the display name and executable is permanent.
 APPLICATION_COMMANDS = {
     "open calculator": ("Calculator", "calc.exe"),
     "calculator": ("Calculator", "calc.exe"),
@@ -66,8 +68,9 @@ APPLICATION_COMMANDS = {
     "notepad": ("Notepad", "notepad.exe"),
 }
 
-# DICTIONARY & TUPLES: Maps folder voice commands to fixed (Folder Name, Absolute Path) tuples
-# Uses safe predefined system directories on Windows
+# DICTIONARY & TUPLES: Maps folder voice commands to fixed (Folder Name, Folder Path) tuples.
+# os.path.expanduser("~") finds the current user's home directory (e.g., C:\Users\Username),
+# and os.path.join() safely combines it with the subfolder name.
 FOLDER_COMMANDS = {
     "open downloads": ("Downloads", os.path.join(os.path.expanduser("~"), "Downloads")),
     "downloads": ("Downloads", os.path.join(os.path.expanduser("~"), "Downloads")),
@@ -77,7 +80,8 @@ FOLDER_COMMANDS = {
     "desktop": ("Desktop", os.path.join(os.path.expanduser("~"), "Desktop")),
 }
 
-# SET: Unique collection of commands that safely terminate the launcher
+# SET: A collection of words that instruct the launcher to shut down.
+# A set is ideal here because we only need to test if a command is in the set ("in" operator).
 EXIT_COMMANDS = {
     "exit",
     "quit",
@@ -86,7 +90,7 @@ EXIT_COMMANDS = {
     "bye"
 }
 
-# SET: Core action verbs recognized by the command processing engine
+# SET: Core action keywords recognized by the launcher.
 CORE_ACTION_KEYWORDS = {
     "open",
     "search",
@@ -103,7 +107,7 @@ CORE_ACTION_KEYWORDS = {
     "about"
 }
 
-# TUPLE: Immutable collection of usage tips displayed in the help menu
+# TUPLE: Immutable collection of helpful tips displayed when the user types "help".
 HELP_TIPS = (
     "Commands are case-insensitive ('Open YouTube' is the same as 'open youtube').",
     "Extra spaces at the beginning, end, or between words are automatically cleaned.",
@@ -114,7 +118,8 @@ HELP_TIPS = (
     "Type 'exit', 'quit', or 'bye' anytime to close the launcher safely."
 )
 
-# DICTIONARY: Maps numeric menu options (strings) to their corresponding voice command strings
+# DICTIONARY: Maps numeric menu options (strings "1" to "20") to their voice commands.
+# This allows the user to simply type a number instead of typing the whole command.
 MENU_NUMBER_MAP = {
     "1": "open youtube",
     "2": "open google",

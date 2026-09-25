@@ -1,13 +1,15 @@
 """
 utils.py - Utility and Helper Functions
 
-This module provides helper functions for string normalization,
-URL construction, time formatting, and console output formatting.
-Demonstrates:
-- String methods: lower(), strip(), split(), replace()
-- Module imports: datetime, urllib.parse
-- Arithmetic operators: string repetition (*)
-- Type conversion: str()
+This module provides helper functions for string cleaning, Google search URL
+formatting, system date and time formatting, and console output.
+
+Python Essentials concepts demonstrated:
+- String methods: lower(), strip(), split(), and join()
+- Module imports: datetime and urllib.parse
+- Type conversion: str() for safe string handling
+- String repetition operator: using * to create decorative divider lines
+- Conditionals: checking operating system type with os.name
 """
 
 from datetime import datetime
@@ -15,78 +17,103 @@ import os
 import urllib.parse
 
 
-def normalize_command(command_text: str) -> str:
+def normalize_command(command_text):
     """
-    Normalizes raw user input by converting to lowercase, removing leading/trailing
-    whitespace, and collapsing redundant internal spaces.
+    Cleans and standardizes raw user input.
+    - Strips leading and trailing whitespace
+    - Converts text to lowercase
+    - Collapses multiple spaces between words into a single space
 
     Example:
         "  OPEN   YOUTUBE  " -> "open youtube"
     """
+    # If None was passed, return an empty string to avoid errors.
     if command_text is None:
         return ""
-    
-    # Type conversion to ensure input is a string
+
+    # Convert the input to a string in case the caller passed a number.
     text = str(command_text)
-    
-    # Strip leading and trailing whitespace, then convert to lowercase
+
+    # Remove extra spaces from the start and end, and convert all characters
+    # to lowercase so that "YouTube", "YOUTUBE", and "youtube" match the same way.
     cleaned = text.strip().lower()
-    
-    # Split into words to remove internal redundant spaces, then rejoin with a single space
+
+    # Split the string by whitespace into a list of words, then rejoin them
+    # with a single space. This turns "open    google" into "open google".
     words = cleaned.split()
     normalized = " ".join(words)
-    
+
     return normalized
 
 
-def build_search_url(query: str) -> str:
+def build_search_url(query):
     """
-    Constructs a valid Google Search URL from a search query string.
-    Uses standard library urllib.parse to safely encode special characters and spaces.
+    Builds a valid Google Search URL from a user's search query string.
+    Uses urllib.parse.quote_plus to safely encode spaces and special characters.
 
     Example:
         "python programming" -> "https://www.google.com/search?q=python+programming"
     """
+    # Remove any extra leading or trailing spaces from the search query.
     cleaned_query = query.strip()
-    # Safely encode query parameters (converts spaces to '+' and escapes special characters)
+
+    # Safely encode the search text. This replaces spaces with '+' and
+    # converts special characters (like ?, &, =) into percent-encoded strings.
     encoded_query = urllib.parse.quote_plus(cleaned_query)
+
+    # Combine the base Google search URL with the encoded query string.
     search_url = f"https://www.google.com/search?q={encoded_query}"
     return search_url
 
 
-def format_current_time() -> str:
+def format_current_time():
     """
-    Returns the current local system date and time formatted in a clear,
-    human-readable style using the datetime module.
+    Returns the current system date and time as a readable string.
+    Example: "Friday, 25 September 2026 | 06:15:30 PM"
     """
+    # Get current date and time from the system clock.
     now = datetime.now()
-    # Formats as: Day, DD Month YYYY | HH:MM:SS AM/PM
+
+    # Format the datetime object using standard strftime directives:
+    # %A: Full weekday name (e.g. Friday)
+    # %d: Two-digit day of month (e.g. 25)
+    # %B: Full month name (e.g. September)
+    # %Y: Four-digit year (e.g. 2026)
+    # %I: Hour in 12-hour format (01-12)
+    # %M: Minute (00-59)
+    # %S: Second (00-59)
+    # %p: AM or PM
     return now.strftime("%A, %d %B %Y | %I:%M:%S %p")
 
 
-def format_current_date() -> str:
+def format_current_date():
     """
-    Returns the current local system date formatted in a clear,
-    human-readable style using the datetime module.
+    Returns the current system date as a readable string.
+    Example: "Friday, 25 September 2026"
     """
+    # Get current date from the system clock.
     now = datetime.now()
-    # Formats as: Day, DD Month YYYY
+
+    # Format as: Day of week, Day Month Year
     return now.strftime("%A, %d %B %Y")
 
 
-def clear_terminal() -> None:
+def clear_terminal():
     """
-    Clears the terminal screen using a fixed cross-platform command.
-    Safe: uses hardcoded string literal 'cls' on Windows or 'clear' on Unix.
-    Never executes user input.
+    Clears the terminal screen.
+    Uses 'cls' on Windows systems and 'clear' on macOS or Linux systems.
     """
-    os.system("cls" if os.name == "nt" else "clear")
+    # Check if the operating system is Windows (os.name is 'nt')
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        os.system("clear")
 
 
-def print_banner() -> None:
+def print_banner():
     """
-    Prints a clean, formatted ASCII header banner for the application.
-    Demonstrates string repetition operator (*).
+    Prints a clean welcome header for the application.
+    Demonstrates string repetition using the * operator.
     """
     separator = "=" * 40
     print(separator)
@@ -94,8 +121,9 @@ def print_banner() -> None:
     print(separator)
 
 
-def print_separator(char: str = "-", length: int = 40) -> None:
+def print_separator(char="-", length=40):
     """
-    Prints a decorative separator line of specified character and length.
+    Prints a divider line of the specified character and length.
+    Demonstrates default function argument values and string repetition (*).
     """
     print(char * length)
