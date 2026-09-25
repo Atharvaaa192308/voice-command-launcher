@@ -1,0 +1,17 @@
+# ==============================================================================
+# Voice Command Launcher - Requirements
+# ==============================================================================
+# This project uses ONLY standard Python modules included with Python 3.10+:
+#
+# Standard Library Modules Used:
+# - os           : For path expansion and cross-platform terminal screen clearing
+# - webbrowser   : For launching websites and web searches in the default browser
+# - subprocess   : For launching Windows desktop applications and File Explorer folders
+# - datetime     : For retrieving and formatting current system date and time
+# - urllib.parse : For safely URL-encoding web search queries
+# - sys          : For system-level interactions
+# - unittest     : For running automated unit tests
+#
+# No external third-party packages (pip dependencies) are required to run
+# the core application or its test suite.
+# ==============================================================================
